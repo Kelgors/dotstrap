@@ -1,13 +1,19 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Parser;
 use pathbuf::pathbuf;
 use std::env;
 use std::fs;
 
+mod action;
 mod cli;
-mod models;
+mod generation;
+mod host;
+mod package;
+mod resolver;
 
-use crate::models::package_definition::PackageDefinition;
+use crate::action::transform_package_to_actions;
+use crate::generation::generate_shell_script;
+use crate::host::HostDefinition;
 
 fn main() -> Result<()> {
     let args = cli::Args::parse();
@@ -30,9 +36,14 @@ fn main() -> Result<()> {
                 hostname,
                 root.unwrap_or("/".to_string())
             );
-            let host_package_path = pathbuf![&pwd, "hosts", &format!("{}.yml", hostname)];
-            let definition = PackageDefinition::from_path(&host_package_path)?;
-            println!("{:#?}", definition);
+            let definition = HostDefinition::from_path(&pathbuf![&pwd, "hosts", &hostname])?;
+            let repo = resolver::resolve_dependencies(&definition.package)?;
+            let actions = transform_package_to_actions(&definition.package, &repo, &mut vec![])?;
+            let script = generate_shell_script(&actions, &definition.config)?;
+            // println!("{:#?}\n\n\n\n", definition);
+            // println!("{:#?}\n\n\n\n", repo);
+            // println!("{:#?}", actions);
+            println!("{}", script.join("\n"));
         }
         Some(cli::Action::Install {
             hostname,
