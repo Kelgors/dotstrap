@@ -15,11 +15,16 @@ pub fn generate_shell_script(
                     .expect(&format!("Invalid source {}", source));
                 output.push(pm.commands.install.replace("<package>", &package));
             }
+            SystemAction::UninstallPackage(source, package) => {
+                let pm = config
+                    .package_managers
+                    .get(source)
+                    .expect(&format!("Invalid source {}", source));
+                output.push(pm.commands.uninstall.replace("<package>", &package));
+            }
             SystemAction::RunScript(scripts) => {
                 output.push("# RunScript".to_string());
-                for line in scripts {
-                    output.push(line.clone());
-                }
+                output.push(scripts.clone());
             }
             SystemAction::CreateLink { src, dest, copy } => {
                 output.push(format!("# CreateLink between {} and {}", src, dest));
@@ -28,6 +33,9 @@ pub fn generate_shell_script(
                 } else {
                     output.push(format!("ln -sf {} {}", dest, src));
                 }
+            }
+            SystemAction::DeleteLink(file) => {
+                output.push(format!("rm {}", file));
             }
         }
     }

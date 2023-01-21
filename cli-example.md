@@ -2,6 +2,7 @@
 
 ```sh
 dotstrap
+  init                # Initialize a dostrap repo
   validate [hostname] # show information about parsed packages
   generate [hostname] # generate applied actions as shell script
     --system            # only install packages

@@ -2,7 +2,6 @@ use clap::{Parser, Subcommand, *};
 
 #[derive(Parser, Debug)]
 #[clap(name = "dotstrap", author, version, about, long_about=None)]
-#[command(next_line_help = true)]
 pub struct Args {
     #[command(subcommand)]
     pub action: Option<Action>,
@@ -10,27 +9,25 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Action {
+    /// Generate a sample dostrap configuration in the current directory
+    Init {},
+    /// Ensure your configuration is correct
     Validate {
+        /// Override hostname, load specific hosts/<hostname/package.yml
         #[arg(value_name = "hostname")]
         hostname: Option<String>,
     },
-
+    /// Generate a shell script from your configuration
     Generate {
+        /// Override hostname, load specific hosts/<hostname/package.yml
         #[arg(value_name = "hostname")]
         hostname: Option<String>,
-
-        /// system root directory (default: /)
-        #[arg(short, long)]
-        root: Option<String>,
     },
-
+    /// Apply your hostname configuration
     Install {
+        /// Override hostname, load specific hosts/<hostname/package.yml
         #[arg(value_name = "hostname")]
         hostname: Option<String>,
-
-        /// system root directory (default: /)
-        #[arg(short, long)]
-        root: Option<String>,
 
         /// verbose mode (default: false)
         #[arg(short, long)]

@@ -1,17 +1,19 @@
+use crate::host::config::HostConfiguration;
 use crate::package::PackageCollection;
 use crate::package::PackageDefinition;
-use crate::host::config::HostConfiguration;
 use anyhow::Result;
 
 #[derive(Debug, Clone)]
 pub enum SystemAction {
     InstallPackage(String, String),
-    RunScript(Vec<String>),
+    RunScript(String),
     CreateLink {
         src: String,
         dest: String,
         copy: bool,
     },
+    UninstallPackage(String, String),
+    DeleteLink(String),
 }
 
 fn flush_pending_actions(
@@ -71,16 +73,13 @@ fn transform_package_deps_to_actions(
     let mut dependencies_actions = vec![];
     let mut system_actions = vec![];
 
-    if package.dependencies.is_none() {
+    if package.dependencies.len() == 0 {
         return Ok(dependencies_actions);
     }
 
-    let package_deps = package.dependencies.as_ref().unwrap();
+    let package_deps = &package.dependencies;
     for dependency in package_deps.into_iter() {
-        if dependency.tagged.is_some() {
-            continue;
-        }
-        let dep_name = dependency.name.as_ref().unwrap();
+        let dep_name = &dependency.name;
         let dep_src = &dependency.source;
         if dep_src == "dot" {
             if loaded.contains(dep_name) {
@@ -117,12 +116,9 @@ pub fn transform_package_to_actions(
             package.post_install.clone().unwrap(),
         ));
     }
-    if package.links.is_some() {
+    if package.links.len() > 0 {
         package_actions.append(
-            &mut package
-                .links
-                .as_ref()
-                .unwrap()
+            &mut (&package.links)
                 .into_iter()
                 .map(|link| SystemAction::CreateLink {
                     src: link.src.clone(),

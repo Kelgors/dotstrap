@@ -8,17 +8,17 @@ pub fn resolve_dependencies(
     package: &PackageDefinition,
 ) -> Result<HashMap<String, PackageDefinition>> {
     let mut dependencies_map = HashMap::<String, PackageDefinition>::new();
-    let package_deps = package.dependencies.as_ref().unwrap();
+    let package_deps = &package.dependencies;
 
     for dependency in package_deps.into_iter() {
         let dep_src = &dependency.source;
-        if dependency.tagged.is_some() || dep_src != "dot" {
+        if dep_src != "dot" {
             continue;
         }
-        let dep_name = dependency.name.as_ref().unwrap().to_string();
+        let dep_name = dependency.name.clone();
         // Load package
         let package_pathname = pathbuf!["./packages", &dep_name, "package.yml"];
-        let definition = PackageDefinition::from_path(&package_pathname).context(format!(
+        let definition = PackageDefinition::load(&package_pathname).context(format!(
             "Unable to parse {}",
             package_pathname.to_str().unwrap()
         ))?;
