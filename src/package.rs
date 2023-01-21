@@ -181,9 +181,11 @@ impl PackageDefinition {
     }
 
     pub fn from_path(pathname: &Path) -> Result<PackageDefinition> {
-        println!("Load Package from {}", pathname.to_string_lossy());
-        let file_content = fs::read_to_string(pathname)?;
-        let docs = YamlLoader::load_from_str(&file_content)?;
+        // println!("Load Package from {}", pathname.to_string_lossy());
+        let file_content = fs::read_to_string(pathname)
+            .expect(&format!("Unable to find file {}", pathname.to_string_lossy()));
+        let docs = YamlLoader::load_from_str(&file_content)
+            .expect(&format!("Unable to parse yaml file {}", pathname.to_string_lossy()));
         let parentdir = pathname
             .parent()
             .unwrap()

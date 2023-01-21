@@ -1,5 +1,6 @@
 use crate::package::PackageCollection;
 use crate::package::PackageDefinition;
+use crate::host::config::HostConfiguration;
 use anyhow::Result;
 
 #[derive(Debug, Clone)]
@@ -11,6 +12,55 @@ pub enum SystemAction {
         dest: String,
         copy: bool,
     },
+}
+
+fn flush_pending_actions(
+    merged_actions: &mut Vec<SystemAction>,
+    last_source: &String,
+    pending_packages: &mut Vec<String>,
+) {
+    merged_actions.push(SystemAction::InstallPackage(
+        last_source.to_string(),
+        pending_packages.join(" "),
+    ));
+    pending_packages.clear();
+}
+
+pub fn compact_mergeable_actions(
+    actions: &Vec<SystemAction>,
+    config: &HostConfiguration,
+) -> Vec<SystemAction> {
+    let mut merged_actions = vec![];
+    let mut last_source: String = "".to_string();
+    let mut pending_packages = vec![];
+    for action in actions.into_iter() {
+        match action {
+            SystemAction::InstallPackage(source, package) => {
+                if !config.package_managers.get(source).unwrap().multiple {
+                    merged_actions.push(action.clone());
+                    continue;
+                }
+                if last_source.eq("") {
+                    last_source = source.clone();
+                } else if last_source.ne(source) {
+                    flush_pending_actions(&mut merged_actions, &last_source, &mut pending_packages);
+                    last_source = source.clone();
+                }
+                pending_packages.push(package.clone());
+            }
+            _ => {
+                if pending_packages.len() > 0 {
+                    flush_pending_actions(&mut merged_actions, &last_source, &mut pending_packages);
+                    last_source = "".to_string();
+                }
+                merged_actions.push(action.clone())
+            }
+        }
+    }
+    if pending_packages.len() > 0 {
+        flush_pending_actions(&mut merged_actions, &last_source, &mut pending_packages);
+    }
+    return merged_actions;
 }
 
 fn transform_package_deps_to_actions(

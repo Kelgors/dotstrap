@@ -11,6 +11,7 @@ mod host;
 mod package;
 mod resolver;
 
+use crate::action::compact_mergeable_actions;
 use crate::action::transform_package_to_actions;
 use crate::generation::generate_shell_script;
 use crate::host::HostDefinition;
@@ -39,7 +40,8 @@ fn main() -> Result<()> {
             let definition = HostDefinition::from_path(&pathbuf![&pwd, "hosts", &hostname])?;
             let repo = resolver::resolve_dependencies(&definition.package)?;
             let actions = transform_package_to_actions(&definition.package, &repo, &mut vec![])?;
-            let script = generate_shell_script(&actions, &definition.config)?;
+            let merged_actions = compact_mergeable_actions(&actions, &definition.config);
+            let script = generate_shell_script(&merged_actions, &definition.config)?;
             // println!("{:#?}\n\n\n\n", definition);
             // println!("{:#?}\n\n\n\n", repo);
             // println!("{:#?}", actions);
