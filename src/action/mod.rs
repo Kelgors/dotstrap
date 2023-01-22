@@ -217,8 +217,8 @@ pub fn transform_package_to_actions(
                     } else {
                         FileOperation::Link
                     },
-                    src: link.src.clone(),
-                    dest: link.dest.clone(),
+                    src: shellexpand::tilde(&link.src).to_string(),
+                    dest: shellexpand::tilde(&link.dest).to_string(),
                     origin: package.path.to_string(),
                 })
                 .collect::<Vec<SystemAction>>(),

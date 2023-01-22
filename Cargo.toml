@@ -15,3 +15,4 @@ serde_yaml = "0.9.17"
 serde_with = "2.2.0"
 colored = "2.0.0"
 promptly = "0.3.1"
+shellexpand = { version = "3.0.0" }
