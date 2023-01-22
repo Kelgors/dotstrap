@@ -35,26 +35,35 @@ fn main() -> Result<()> {
             std::fs::create_dir_all(pathbuf![&pwd, "packages", "flatpak"])?;
             std::fs::create_dir_all(pathbuf![&pwd, "packages", "tmux"])?;
             std::fs::create_dir_all(pathbuf![&pwd, "hosts", &machine_hostname])?;
-            std::fs::write(
-                pathbuf![&pwd, "hosts", &machine_hostname, "package.yml"],
-                host::DEFAULT_HOST_PACKAGE_CONTENT,
-            )?;
-            std::fs::write(
-                pathbuf![&pwd, "hosts", &machine_hostname, "config.yml"],
-                host::DEFAULT_HOST_CONFIG_CONTENT,
-            )?;
-            std::fs::write(
-                pathbuf![&pwd, "packages", "flatpak", "package.yml"],
-                package::DEFAULT_PACKAGE_EXAMPLE_FLATPAK,
-            )?;
-            std::fs::write(
-                pathbuf![&pwd, "packages", "tmux", "package.yml"],
-                package::DEFAULT_PACKAGE_EXAMPLE_TMUX,
-            )?;
-            std::fs::write(
-                pathbuf![&pwd, "packages", "tmux", "tmux.conf"],
-                package::DEFAULT_PACKAGE_EXAMPLE_TMUX_CONFIG,
-            )?;
+            [
+                (
+                    pathbuf![&pwd, "hosts", &machine_hostname, "package.yml"],
+                    host::DEFAULT_HOST_PACKAGE_CONTENT,
+                ),
+                (
+                    pathbuf![&pwd, "hosts", &machine_hostname, "config.yml"],
+                    host::DEFAULT_HOST_CONFIG_CONTENT,
+                ),
+                (
+                    pathbuf![&pwd, "packages", "flatpak", "package.yml"],
+                    package::DEFAULT_PACKAGE_EXAMPLE_FLATPAK,
+                ),
+                (
+                    pathbuf![&pwd, "packages", "tmux", "package.yml"],
+                    package::DEFAULT_PACKAGE_EXAMPLE_TMUX,
+                ),
+                (
+                    pathbuf![&pwd, "packages", "tmux", "tmux.conf"],
+                    package::DEFAULT_PACKAGE_EXAMPLE_TMUX_CONFIG,
+                ),
+            ]
+            .iter()
+            .for_each(|(path, content)| {
+                std::fs::write(path, content).expect(&format!(
+                    "Unable to write the file {}",
+                    path.to_str().unwrap()
+                ));
+            });
         }
         Some(cli::Action::Generate { hostname }) => {
             let hostname = hostname.unwrap_or(machine_hostname);

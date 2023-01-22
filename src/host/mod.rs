@@ -36,11 +36,11 @@ post_install: |
   echo \"Hello\"
 links:
   # You can label symlinks as a string source:destination
-  # - init.vim:~/.config/nvim/init.vim
+  - init.vim:~/.config/nvim/init.vim
   # or via an object (you can specify also if you want to copy it or link it)
-  # - src: init.vim
-  #   dest: ~/.config/nvim/init.vim
-  #   copy: false
+  - src: init.vim
+    dest: ~/.config/nvim/init.vim
+    copy: false
 ";
 
 pub const DEFAULT_HOST_CONFIG_CONTENT: &str = "package_managers:
@@ -48,8 +48,8 @@ pub const DEFAULT_HOST_CONFIG_CONTENT: &str = "package_managers:
     # indicate that the package manager supports multiple packages at once
     multiple: true
     commands:
-      install: paru --needed -S <package>
-      uninstall: paru -Runs <package>
+      install: paru --needed --noconfirm -S <package>
+      uninstall: paru -Runs --noconfirm <package>
   flatpak:
     multiple: false
     commands:
