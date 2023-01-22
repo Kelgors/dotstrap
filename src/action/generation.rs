@@ -50,7 +50,11 @@ pub fn generate_shell_script(
             } => match operation {
                 ScriptOperation::Run => {
                     last_comment = add_comment(format!("# {}", origin), &last_comment, &mut output);
-                    output.push(script.clone());
+                    output.push(format!(
+                        "PACKAGE={}\n{}",
+                        origin.split(':').nth(0).unwrap(),
+                        script
+                    ));
                 }
             },
             SystemAction::File {

@@ -19,12 +19,16 @@ pub fn execute_pm_command(command: &String, package_name: &String) {
     let mut std_command = Command::new(&args[0]);
     for index in 1..args.len() {
         let part = args[index].trim();
-        if part.trim().len() == 0 {}
-        std_command.arg(if part == "<package>" {
-            package_name
-        } else {
-            part
-        });
+        if part.trim().len() == 0 {
+            continue;
+        }
+        if part.ne("<package>") {
+            std_command.arg(part);
+            continue;
+        }
+        for package_item in package_name.split(" ") {
+            std_command.arg(package_item);
+        }
     }
     handle_output(
         std_command
@@ -33,7 +37,7 @@ pub fn execute_pm_command(command: &String, package_name: &String) {
     );
 }
 
-pub fn execute_script(script: &String) {
+pub fn execute_script(script: &String, origin: &String) {
     let filepath = pathbuf![&std::env::temp_dir(), "dotstrap-tmp-script.sh"];
     std::fs::write(&filepath, script).expect(&format!(
         "Unable to write file {}",
@@ -51,6 +55,7 @@ pub fn execute_script(script: &String) {
         filepath.to_string_lossy()
     ));
     let output = Command::new("sh")
+        .env("PACKAGE", origin.split(':').nth(0).unwrap())
         .arg(filepath.to_str().unwrap().to_string())
         .output()
         .expect(&format!(
@@ -68,6 +73,8 @@ fn handle_output(console_output: Output) {
     if console_output.status.success() {
         return;
     }
+
+    println!("{}", String::from_utf8(console_output.stdout).unwrap());
     eprintln!("{}", String::from_utf8(console_output.stderr).unwrap());
     panic!["Error during command"];
 }
@@ -130,7 +137,7 @@ pub fn execute(
                         &script.trim().to_string(),
                     );
                     if really_execute {
-                        execute_script(script);
+                        execute_script(script, origin);
                     }
                 }
             },
@@ -140,32 +147,86 @@ pub fn execute(
                 dest,
                 origin,
             } => {
-                let src_path = pathbuf![&origin, src];
+                let src_path = pathbuf![&std::env::current_dir().unwrap(), &origin, src];
+                let dest_path = pathbuf![dest];
+                let dest_dir = dest_path.parent().unwrap().to_path_buf();
                 match operation {
                     FileOperation::Link => {
-                        log_with_tag("LINK".blue(), &format!("{} {}", src, dest));
+                        log_with_tag(
+                            "LINK".blue(),
+                            &format!(
+                                "{} {}",
+                                src_path.to_str().unwrap(),
+                                dest_path.to_str().unwrap()
+                            ),
+                        );
                         if really_execute {
-                            std::os::unix::fs::symlink(&src_path, dest).expect(&format!(
+                            // Create dir if not exist
+                            if !dest_dir.exists() {
+                                println!("create dir at {}", dest_path.to_str().unwrap());
+                                std::fs::create_dir_all(&dest_dir).expect(&format!(
+                                    "Unable to make directory at {}",
+                                    dest_dir.to_str().unwrap()
+                                ));
+                            }
+                            // Remove existing file before symlink
+                            if (dest_path.is_symlink() && dest_path.symlink_metadata().is_ok())
+                                || dest_path.metadata().is_ok()
+                            {
+                                println!("remove file at {}", dest_path.to_str().unwrap());
+                                std::fs::remove_file(&dest_path).expect(&format!(
+                                    "Unable to remove file {}",
+                                    dest_path.to_str().unwrap()
+                                ));
+                            }
+                            std::os::unix::fs::symlink(&src_path, &dest_path).expect(&format!(
                                 "Unable to symlink from {} to {}",
                                 src_path.to_str().unwrap(),
-                                dest
+                                dest_dir.to_str().unwrap()
                             ));
                         }
                     }
                     FileOperation::Copy => {
-                        log_with_tag("COPY".blue(), &format!("{} {}", src, dest));
+                        log_with_tag(
+                            "COPY".blue(),
+                            &format!(
+                                "{} {}",
+                                src_path.to_str().unwrap(),
+                                dest_path.to_str().unwrap()
+                            ),
+                        );
                         if really_execute {
-                            std::fs::copy(&src_path, dest).expect(&format!(
+                            // Create dir if not exist
+                            if !dest_dir.exists() {
+                                std::fs::create_dir_all(&dest_dir).expect(&format!(
+                                    "Unable to make directory at {}",
+                                    dest_dir.to_str().unwrap()
+                                ));
+                            }
+                            // Remove existing file before symlink
+                            if (dest_path.is_symlink() && dest_path.symlink_metadata().is_ok())
+                                || dest_path.metadata().is_ok()
+                            {
+                                println!("remove file at {}", dest_path.to_str().unwrap());
+                                std::fs::remove_file(&dest_path).expect(&format!(
+                                    "Unable to remove file {}",
+                                    dest_path.to_str().unwrap()
+                                ));
+                            }
+                            std::fs::copy(&src_path, &dest_path).expect(&format!(
                                 "Unable to copy from {} to {}",
                                 src_path.to_str().unwrap(),
-                                dest
+                                dest_dir.to_str().unwrap()
                             ));
                         }
                     }
                     FileOperation::Remove => {
-                        log_with_tag("DELETE".bright_red(), dest);
-                        if really_execute {
-                            std::fs::remove_file(dest)
+                        log_with_tag(
+                            "DELETE".bright_red(),
+                            &format!("{}", dest_path.to_str().unwrap()),
+                        );
+                        if really_execute && dest_path.exists() {
+                            std::fs::remove_file(&dest_path)
                                 .expect(&format!("Unable to remove file {}", dest));
                         }
                     }
