@@ -1,6 +1,8 @@
+use action::execution::execute;
 use anyhow::Result;
 use clap::Parser;
 use pathbuf::pathbuf;
+use promptly::prompt_default;
 use std::env;
 use std::fs;
 
@@ -54,14 +56,34 @@ fn main() -> Result<()> {
                 package::DEFAULT_PACKAGE_EXAMPLE_TMUX_CONFIG,
             )?;
         }
-        Some(cli::Action::Validate { hostname }) => {
-            let hostname = hostname.unwrap_or(machine_hostname);
-            println!("Validate for {}", hostname);
-        }
         Some(cli::Action::Generate { hostname }) => {
             let hostname = hostname.unwrap_or(machine_hostname);
             // Load host definition and prepare system actions from it
-            let host_definition = HostDefinition::from_path(&pathbuf![&pwd, "hosts", &hostname])?;
+            let host_definition = HostDefinition::from_path(&pathbuf!["hosts", &hostname])?;
+            let packages_repo = resolver::resolve_dependencies(&host_definition.package)?;
+            let next_system_actions = transform_package_to_actions(
+                &host_definition.package,
+                &packages_repo,
+                &mut vec![],
+            )?;
+            // TODO Err no handled correctly
+            // merge next actions with cleaning actions
+            let all_actions: Vec<SystemAction> =
+                if let Ok(Some(cleaning_actions)) = get_cleaning_actions(&next_system_actions) {
+                    [cleaning_actions, next_system_actions].concat()
+                } else {
+                    next_system_actions
+                };
+            // compacting actions when possible
+            let merged_actions = compact_mergeable_actions(&all_actions, &host_definition.config);
+            // generate shell script
+            let script = generate_shell_script(&merged_actions, &host_definition.config)?;
+            println!("{}", script.join("\n"));
+        }
+        Some(cli::Action::Install { hostname, dry }) => {
+            let hostname = hostname.unwrap_or(machine_hostname);
+            // Load host definition and prepare system actions from it
+            let host_definition = HostDefinition::from_path(&pathbuf!["hosts", &hostname])?;
             let packages_repo = resolver::resolve_dependencies(&host_definition.package)?;
             let next_system_actions = transform_package_to_actions(
                 &host_definition.package,
@@ -80,26 +102,21 @@ fn main() -> Result<()> {
                 };
             // compacting actions when possible
             let merged_actions = compact_mergeable_actions(&all_actions, &host_definition.config);
-            // generate shell script
-            let script =
-                generate_shell_script(&merged_actions, &host_definition.config, &hostname)?;
 
-            std::fs::write(pathbuf![&pwd, ".lockfile"], &serialized_next_lockfile)?;
+            if dry {
+                println!("DryMode: {}", dry);
+            }
+            let confirm_execution = prompt_default(
+                format!("Do you want to apply {} operations?", all_actions.len()),
+                false,
+            )?;
 
-            println!("{}", script.join("\n"));
-        }
-        Some(cli::Action::Install {
-            hostname,
-            verbose,
-            dry,
-        }) => {
-            let hostname = hostname.unwrap_or(machine_hostname);
-            println!(
-                "Install for {} (verbose: {}, dry: {})",
-                hostname,
-                verbose.unwrap_or(false),
-                dry.unwrap_or(false)
-            );
+            if confirm_execution {
+                execute(&merged_actions, &host_definition.config, dry)?;
+                if !dry {
+                    std::fs::write(pathbuf![&pwd, ".lockfile"], &serialized_next_lockfile)?;
+                }
+            }
         }
         None => {}
     }

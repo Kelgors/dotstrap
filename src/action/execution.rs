@@ -1,4 +1,5 @@
 use anyhow::Result;
+use colored::Colorize;
 use pathbuf::pathbuf;
 use std::{
     os::unix::prelude::PermissionsExt,
@@ -71,61 +72,102 @@ fn handle_output(console_output: Output) {
     panic!["Error during command"];
 }
 
+fn log_with_tag<T: std::fmt::Display>(tag: T, message: &String) {
+    println!("[{}] {}", tag, message);
+}
+
 pub fn execute(
     sytem_actions: &Vec<SystemAction>,
     config: &HostConfiguration,
-    hostname: &String,
+    dry_run: bool,
 ) -> Result<()> {
+    let really_execute = !dry_run;
     for sysaction in sytem_actions.into_iter() {
         match sysaction {
             SystemAction::Package {
                 operation,
                 source,
                 name,
+                origin,
             } => {
                 let pm = config
                     .package_managers
                     .get(source)
-                    .expect(&format!("Invalid source {}", source));
-
-                execute_pm_command(
-                    match operation {
-                        PackageOperation::Install => &pm.commands.install,
-                        PackageOperation::Uninstall => &pm.commands.uninstall,
-                    },
-                    name,
-                );
+                    .expect(&format!("Invalid source {} from {}", source, origin));
+                let long_package_name = if "os".eq(source) {
+                    name.clone()
+                } else {
+                    format!("{}:{}", source, name)
+                };
+                match operation {
+                    PackageOperation::Install => {
+                        log_with_tag("INSTALL".green(), &long_package_name);
+                        if really_execute {
+                            execute_pm_command(&pm.commands.install, name);
+                        }
+                    }
+                    PackageOperation::Uninstall => {
+                        log_with_tag("REMOVE".red(), &long_package_name);
+                        if really_execute {
+                            execute_pm_command(&pm.commands.uninstall, name);
+                        }
+                    }
+                }
             }
-            SystemAction::Script { operation, script } => match operation {
+            SystemAction::Script {
+                operation,
+                script,
+                origin,
+            } => match operation {
                 ScriptOperation::Run => {
-                    execute_script(script);
+                    log_with_tag(
+                        origin
+                            .split(":")
+                            .last()
+                            .unwrap()
+                            .to_uppercase()
+                            .bright_purple(),
+                        &script.trim().to_string(),
+                    );
+                    if really_execute {
+                        execute_script(script);
+                    }
                 }
             },
             SystemAction::File {
                 operation,
                 src,
                 dest,
+                origin,
             } => {
-                let pwd = std::env::current_dir()?;
-                // FIX wrong src path construction
-                let src_path = pathbuf![&pwd, "packages", hostname, src];
-                let src_path_string = src_path.to_str().unwrap();
+                let src_path = pathbuf![&origin, src];
                 match operation {
                     FileOperation::Link => {
-                        std::os::unix::fs::symlink(src_path_string, dest).expect(&format!(
-                            "Unable to symlink from {} to {}",
-                            src_path_string, dest
-                        ));
+                        log_with_tag("LINK".blue(), &format!("{} {}", src, dest));
+                        if really_execute {
+                            std::os::unix::fs::symlink(&src_path, dest).expect(&format!(
+                                "Unable to symlink from {} to {}",
+                                src_path.to_str().unwrap(),
+                                dest
+                            ));
+                        }
                     }
                     FileOperation::Copy => {
-                        std::fs::copy(src_path_string, dest).expect(&format!(
-                            "Unable to copy from {} to {}",
-                            src_path_string, dest
-                        ));
+                        log_with_tag("COPY".blue(), &format!("{} {}", src, dest));
+                        if really_execute {
+                            std::fs::copy(&src_path, dest).expect(&format!(
+                                "Unable to copy from {} to {}",
+                                src_path.to_str().unwrap(),
+                                dest
+                            ));
+                        }
                     }
                     FileOperation::Remove => {
-                        std::fs::remove_file(dest)
-                            .expect(&format!("Unable to remove file {}", dest));
+                        log_with_tag("DELETE".bright_red(), dest);
+                        if really_execute {
+                            std::fs::remove_file(dest)
+                                .expect(&format!("Unable to remove file {}", dest));
+                        }
                     }
                 }
             }

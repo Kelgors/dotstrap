@@ -17,7 +17,7 @@ pub fn resolve_dependencies(
         }
         let dep_name = dependency.name.clone();
         // Load package
-        let package_pathname = pathbuf!["./packages", &dep_name, "package.yml"];
+        let package_pathname = pathbuf!["packages", &dep_name, "package.yml"];
         let definition = PackageDefinition::load(&package_pathname).context(format!(
             "Unable to parse {}",
             package_pathname.to_str().unwrap()

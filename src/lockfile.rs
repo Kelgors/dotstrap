@@ -33,11 +33,13 @@ pub fn get_cleaning_actions(
                     operation,
                     source: _,
                     name: _,
+                    origin: _,
                 } => PackageOperation::Install.eq(operation),
                 SystemAction::File {
                     operation,
                     src: _,
                     dest: _,
+                    origin: _,
                 } => FileOperation::Remove.ne(operation),
                 _ => false,
             })
@@ -46,22 +48,26 @@ pub fn get_cleaning_actions(
                     operation: _,
                     source,
                     name,
+                    origin,
                 } => {
                     return SystemAction::Package {
                         operation: PackageOperation::Uninstall,
                         source: source.clone(),
                         name: name.clone(),
+                        origin: origin.to_string(),
                     };
                 }
                 SystemAction::File {
                     operation: _,
                     src: _,
                     dest,
+                    origin,
                 } => {
                     return SystemAction::File {
                         operation: FileOperation::Remove,
                         src: String::new(),
                         dest: dest.clone(),
+                        origin: origin.to_string(),
                     };
                 }
                 _ => panic!["Filtered values should not be mapped"],

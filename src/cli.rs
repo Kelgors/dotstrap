@@ -11,30 +11,19 @@ pub struct Args {
 pub enum Action {
     /// Generate a sample dostrap configuration in the current directory
     Init {},
-    /// Ensure your configuration is correct
-    Validate {
-        /// Override hostname, load specific hosts/<hostname/package.yml
-        #[arg(value_name = "hostname")]
-        hostname: Option<String>,
-    },
     /// Generate a shell script from your configuration
     Generate {
         /// Override hostname, load specific hosts/<hostname/package.yml
-        #[arg(value_name = "hostname")]
+        #[arg()]
         hostname: Option<String>,
     },
     /// Apply your hostname configuration
     Install {
         /// Override hostname, load specific hosts/<hostname/package.yml
-        #[arg(value_name = "hostname")]
+        #[arg()]
         hostname: Option<String>,
 
-        /// verbose mode (default: false)
         #[arg(short, long)]
-        verbose: Option<bool>,
-
-        /// dry mode (default: false)
-        #[arg(short, long)]
-        dry: Option<bool>,
+        dry: bool,
     },
 }

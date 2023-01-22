@@ -12,46 +12,61 @@ fn test_compacter_adjoining_packages() {
             operation: PackageOperation::Uninstall,
             source: "os".to_string(),
             name: "bash".to_string(),
+            origin: "packages/bash".to_string(),
+        },
+        SystemAction::Package {
+            operation: PackageOperation::Uninstall,
+            source: "os".to_string(),
+            name: "bash-completion".to_string(),
+            origin: "packages/bash".to_string(),
         },
         SystemAction::Package {
             operation: PackageOperation::Uninstall,
             source: "os".to_string(),
             name: "fish".to_string(),
+            origin: "hosts/Kelgors-Desktop".to_string(),
         },
         SystemAction::Package {
             operation: PackageOperation::Install,
             source: "os".to_string(),
             name: "zsh".to_string(),
+            origin: "packages/zsh".to_string(),
         },
         SystemAction::Package {
             operation: PackageOperation::Install,
             source: "os".to_string(),
             name: "zsh-syntax-highlighting".to_string(),
+            origin: "packages/zsh".to_string(),
         },
         SystemAction::Package {
             operation: PackageOperation::Install,
             source: "os".to_string(),
             name: "zsh-autosuggestions".to_string(),
+            origin: "packages/zsh".to_string(),
         },
         SystemAction::Package {
             operation: PackageOperation::Install,
             source: "os".to_string(),
             name: "zsh-history-substring-search".to_string(),
+            origin: "packages/zsh".to_string(),
         },
         SystemAction::Package {
             operation: PackageOperation::Install,
             source: "os".to_string(),
             name: "zsh-theme-powerlevel10k".to_string(),
+            origin: "packages/zsh".to_string(),
         },
         SystemAction::File {
             operation: FileOperation::Link,
             src: "zshrc".to_string(),
             dest: "~/.zshrc".to_string(),
+            origin: "packages/zsh".to_string(),
         },
         SystemAction::File {
             operation: FileOperation::Copy,
             src: "profile".to_string(),
             dest: "~/.$USER.profile".to_string(),
+            origin: "packages/zsh".to_string(),
         },
     ];
 
@@ -72,22 +87,32 @@ fn test_compacter_adjoining_packages() {
             SystemAction::Package {
                 operation: PackageOperation::Uninstall,
                 source: "os".to_string(),
-                name: "bash fish".to_string(),
+                name: "bash bash-completion".to_string(),
+                origin: "packages/bash".to_string(),
+            },
+            SystemAction::Package {
+                operation: PackageOperation::Uninstall,
+                source: "os".to_string(),
+                name: "fish".to_string(),
+                origin: "hosts/Kelgors-Desktop".to_string(),
             },
             SystemAction::Package {
                 operation: PackageOperation::Install,
                 source: "os".to_string(),
                 name: "zsh zsh-syntax-highlighting zsh-autosuggestions zsh-history-substring-search zsh-theme-powerlevel10k".to_string(),
+                origin: "packages/zsh".to_string(),
             },
             SystemAction::File {
                 operation: FileOperation::Link,
                 src: "zshrc".to_string(),
                 dest: "~/.zshrc".to_string(),
+                origin: "packages/zsh".to_string(),
             },
             SystemAction::File {
                 operation: FileOperation::Copy,
                 src: "profile".to_string(),
                 dest: "~/.$USER.profile".to_string(),
+                origin: "packages/zsh".to_string(),
             },
         ];
     let merged_actions = compact_mergeable_actions(&sysactions, &config);

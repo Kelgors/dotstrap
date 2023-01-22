@@ -75,14 +75,23 @@ pub struct PackageDefinition {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
-    pub description: String,
+    pub path: String,
+
+    pub description: Option<String>,
+
+    pub pre_install: Option<String>,
+
     #[serde(default)]
     #[serde_as(as = "Vec<PickFirst<(_, DisplayFromStr)>>")]
     pub dependencies: Vec<DependencyDefinition>,
+
     pub post_install: Option<String>,
+
     #[serde(default)]
     #[serde_as(as = "Vec<PickFirst<(_, DisplayFromStr)>>")]
     pub links: Vec<LinkFileDefinition>,
+
+    pub post_links: Option<String>,
 }
 
 impl PackageDefinition {
@@ -101,6 +110,7 @@ impl PackageDefinition {
             .to_string();
         let mut package_definition: PackageDefinition = serde_yaml::from_str(&file_content)?;
         package_definition.name = parentdir;
+        package_definition.path = pathname.parent().unwrap().to_str().unwrap().to_string();
         return Ok(package_definition);
     }
 }

@@ -8,10 +8,10 @@ edition = "2021"
 [dependencies]
 # cli
 clap = { version="4", features = ["derive"] }
-# yaml parser
-yaml-rust = "^0.4.5"
 anyhow = "^1.0.68"
 pathbuf = "^0.3.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_yaml = "0.9.17"
 serde_with = "2.2.0"
+colored = "2.0.0"
+promptly = "0.3.1"

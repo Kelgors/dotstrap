@@ -35,15 +35,18 @@ pub enum SystemAction {
         operation: PackageOperation,
         source: String,
         name: String,
+        origin: String,
     },
     Script {
         operation: ScriptOperation,
         script: String,
+        origin: String,
     },
     File {
         operation: FileOperation,
         src: String,
         dest: String,
+        origin: String,
     },
 }
 
@@ -52,11 +55,13 @@ fn flush_pending_actions(
     last_source: &String,
     pending_packages: &mut Vec<String>,
     last_operation: &PackageOperation,
+    last_origin: &String,
 ) {
     merged_actions.push(SystemAction::Package {
         operation: last_operation.clone(),
         source: last_source.to_string(),
         name: pending_packages.join(" "),
+        origin: last_origin.to_string(),
     });
     pending_packages.clear();
 }
@@ -68,8 +73,9 @@ pub fn compact_mergeable_actions(
 ) -> Vec<SystemAction> {
     let mut merged_actions = vec![];
 
-    let mut last_source: String = "".to_string();
+    let mut last_source: String = String::new();
     let mut last_operation: PackageOperation = PackageOperation::Install;
+    let mut last_origin: String = String::new();
     let mut pending_packages = vec![];
     for system_action in system_actions.into_iter() {
         match system_action {
@@ -77,6 +83,7 @@ pub fn compact_mergeable_actions(
                 operation,
                 source,
                 name,
+                origin,
             } => {
                 let pm_supports_multiple = config
                     .package_managers
@@ -84,13 +91,17 @@ pub fn compact_mergeable_actions(
                     .unwrap()
                     .multiple
                     .clone();
-                if last_source.len() > 0 && (last_source.ne(source) || last_operation.ne(operation))
+                if last_source.len() > 0
+                    && (last_source.ne(source)
+                        || last_operation.ne(operation)
+                        || last_origin.ne(origin))
                 {
                     flush_pending_actions(
                         &mut merged_actions,
                         &last_source,
                         &mut pending_packages,
                         &last_operation,
+                        &last_origin,
                     );
                     last_source = String::new();
                 }
@@ -98,6 +109,7 @@ pub fn compact_mergeable_actions(
                     if last_source.len() == 0 {
                         last_source = source.clone();
                         last_operation = operation.clone();
+                        last_origin = origin.clone();
                     }
                     pending_packages.push(name.clone());
                 } else {
@@ -111,6 +123,7 @@ pub fn compact_mergeable_actions(
                         &last_source,
                         &mut pending_packages,
                         &last_operation,
+                        &last_origin,
                     );
                     last_source = String::new();
                 }
@@ -124,6 +137,7 @@ pub fn compact_mergeable_actions(
             &last_source,
             &mut pending_packages,
             &last_operation,
+            &last_origin,
         );
     }
     return merged_actions;
@@ -145,7 +159,7 @@ fn transform_package_deps_to_actions(
     for dependency in package_deps.into_iter() {
         let dep_name = &dependency.name;
         let dep_src = &dependency.source;
-        if dep_src == "dot" {
+        if dep_src.eq("dot") {
             if loaded.contains(dep_name) {
                 continue;
             }
@@ -163,6 +177,7 @@ fn transform_package_deps_to_actions(
             operation: PackageOperation::Install,
             source: dep_src.to_string(),
             name: dep_name.to_string(),
+            origin: package.path.to_string(),
         });
     }
     dependencies_actions.append(&mut system_actions);
@@ -174,12 +189,22 @@ pub fn transform_package_to_actions(
     repo: &PackageCollection,
     loaded: &mut Vec<String>,
 ) -> Result<Vec<SystemAction>> {
-    let mut package_actions: Vec<SystemAction> =
-        transform_package_deps_to_actions(package, repo, loaded)?;
+    let mut package_actions: Vec<SystemAction> = vec![];
+    if package.pre_install.is_some() {
+        package_actions.push(SystemAction::Script {
+            operation: ScriptOperation::Run,
+            script: package.pre_install.clone().unwrap(),
+            origin: format!("{}:pre_install", package.path),
+        });
+    }
+    package_actions.append(&mut transform_package_deps_to_actions(
+        package, repo, loaded,
+    )?);
     if package.post_install.is_some() {
         package_actions.push(SystemAction::Script {
             operation: ScriptOperation::Run,
             script: package.post_install.clone().unwrap(),
+            origin: format!("{}:post_install", package.path),
         });
     }
     if package.links.len() > 0 {
@@ -194,9 +219,17 @@ pub fn transform_package_to_actions(
                     },
                     src: link.src.clone(),
                     dest: link.dest.clone(),
+                    origin: package.path.to_string(),
                 })
                 .collect::<Vec<SystemAction>>(),
         );
+    }
+    if package.post_links.is_some() {
+        package_actions.push(SystemAction::Script {
+            operation: ScriptOperation::Run,
+            script: package.post_links.clone().unwrap(),
+            origin: format!("{}:post_links", package.path),
+        });
     }
     return Ok(package_actions);
 }
