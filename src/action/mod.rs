@@ -4,6 +4,9 @@ use crate::package::PackageDefinition;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+pub mod execution;
+pub mod generation;
+
 #[cfg(test)]
 mod test;
 

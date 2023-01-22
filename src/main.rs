@@ -6,7 +6,6 @@ use std::fs;
 
 mod action;
 mod cli;
-mod generation;
 mod helpers;
 mod host;
 mod lockfile;
@@ -14,9 +13,9 @@ mod package;
 mod resolver;
 
 use crate::action::compact_mergeable_actions;
+use crate::action::generation::generate_shell_script;
 use crate::action::transform_package_to_actions;
 use crate::action::SystemAction;
-use crate::generation::generate_shell_script;
 use crate::host::HostDefinition;
 use crate::lockfile::get_cleaning_actions;
 
@@ -61,7 +60,6 @@ fn main() -> Result<()> {
         }
         Some(cli::Action::Generate { hostname }) => {
             let hostname = hostname.unwrap_or(machine_hostname);
-            println!("Generate for {}", hostname);
             // Load host definition and prepare system actions from it
             let host_definition = HostDefinition::from_path(&pathbuf![&pwd, "hosts", &hostname])?;
             let packages_repo = resolver::resolve_dependencies(&host_definition.package)?;

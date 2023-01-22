@@ -55,13 +55,13 @@ pub fn get_cleaning_actions(
                 }
                 SystemAction::File {
                     operation: _,
-                    src,
-                    dest: _,
+                    src: _,
+                    dest,
                 } => {
                     return SystemAction::File {
                         operation: FileOperation::Remove,
                         src: String::new(),
-                        dest: src.clone(),
+                        dest: dest.clone(),
                     };
                 }
                 _ => panic!["Filtered values should not be mapped"],
