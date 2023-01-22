@@ -17,7 +17,7 @@ impl HostDefinition {
     pub fn from_path(pathbuf: &PathBuf) -> Result<HostDefinition> {
         return Ok(HostDefinition {
             package: PackageDefinition::load(&pathbuf![pathbuf, "package.yml"])?,
-            config: HostConfiguration::from_path(&pathbuf![pathbuf, "config.yml"])?,
+            config: HostConfiguration::load(&pathbuf![pathbuf, "config.yml"])?,
         });
     }
 }

@@ -1,14 +1,9 @@
 use anyhow::Result;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr, PickFirst};
 use std::fmt::{self, Display};
 use std::str::FromStr;
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs, path::Path};
 
 fn dependency_default_source() -> String {
     return "os".to_string();
@@ -71,16 +66,6 @@ impl FromStr for LinkFileDefinition {
             dest: splitted[1].to_string(),
             copy: false,
         });
-    }
-}
-
-impl LinkFileDefinition {
-    pub fn prepend_src(self, dirpath: &PathBuf) -> LinkFileDefinition {
-        return LinkFileDefinition {
-            src: dirpath.join(self.src).to_str().unwrap().to_string(),
-            dest: self.dest.clone(),
-            copy: self.copy.clone(),
-        };
     }
 }
 

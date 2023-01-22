@@ -7,8 +7,9 @@ use std::fs;
 mod action;
 mod cli;
 mod generation;
+mod helpers;
 mod host;
-// mod lockfile;
+mod lockfile;
 mod package;
 mod resolver;
 
@@ -17,8 +18,7 @@ use crate::action::transform_package_to_actions;
 use crate::action::SystemAction;
 use crate::generation::generate_shell_script;
 use crate::host::HostDefinition;
-// use crate::lockfile::create_lockfile;
-// use crate::lockfile::Lockfile;
+use crate::lockfile::get_cleaning_actions;
 
 fn main() -> Result<()> {
     let args = cli::Args::parse();
@@ -62,31 +62,31 @@ fn main() -> Result<()> {
         Some(cli::Action::Generate { hostname }) => {
             let hostname = hostname.unwrap_or(machine_hostname);
             println!("Generate for {}", hostname);
-            let definition = HostDefinition::from_path(&pathbuf![&pwd, "hosts", &hostname])?;
-            let repo = resolver::resolve_dependencies(&definition.package)?;
+            // Load host definition and prepare system actions from it
+            let host_definition = HostDefinition::from_path(&pathbuf![&pwd, "hosts", &hostname])?;
+            let packages_repo = resolver::resolve_dependencies(&host_definition.package)?;
+            let next_system_actions = transform_package_to_actions(
+                &host_definition.package,
+                &packages_repo,
+                &mut vec![],
+            )?;
+            // save next lockfile before "cleaning" mutation
+            let serialized_next_lockfile: String = serde_yaml::to_string(&next_system_actions)?;
+            // TODO Err no handled correctly
+            // merge next actions with cleaning actions
+            let all_actions: Vec<SystemAction> =
+                if let Ok(Some(cleaning_actions)) = get_cleaning_actions(&next_system_actions) {
+                    [cleaning_actions, next_system_actions].concat()
+                } else {
+                    next_system_actions
+                };
+            // compacting actions when possible
+            let merged_actions = compact_mergeable_actions(&all_actions, &host_definition.config);
+            // generate shell script
+            let script =
+                generate_shell_script(&merged_actions, &host_definition.config, &hostname)?;
 
-            // let lockfile = create_lockfile(&definition.package, &repo);
-            // let clean_actions = if let Ok(old_lockfile) = Lockfile::load() {
-            //     // generate cleaning actions from lockfiles
-            //     let mut output = vec![];
-            //     output.push(SystemAction::UninstallPackage(
-            //         "".to_string(),
-            //         "".to_string(),
-            //     ));
-            //     Some(output)
-            // } else {
-            //     None
-            // };
-
-            let actions = transform_package_to_actions(&definition.package, &repo, &mut vec![])?;
-            let merged_actions = compact_mergeable_actions(&actions, &definition.config);
-            let script = generate_shell_script(&merged_actions, &definition.config)?;
-            // println!("{:#?}\n\n\n\n", definition);
-            // println!("{:#?}\n\n\n\n", repo);
-            // println!("{:#?}", &merged_actions);
-            // let lockfile = std::fs::write(pathbuf![&pwd, ".lockfile"], &lockfile)?;
-
-            // println!("{:#?}", &clean_actions);
+            std::fs::write(pathbuf![&pwd, ".lockfile"], &serialized_next_lockfile)?;
 
             println!("{}", script.join("\n"));
         }
