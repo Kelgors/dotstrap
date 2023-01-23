@@ -1,10 +1,10 @@
 # dotstrap
 
-dotstrap allows you to manage your dotfiles and package them with the related application. dotstrap is between ansible and an AUR package. You can create your own packages (set of dependencies, files and script), link them together, create a configuration for one or more computers and keep all of that stuff on one git repository.
+dotstrap allows you to manage your dotfiles and package them with the related application. dotstrap is between ansible and an AUR package, in a lot simplier form. You can create your own packages (set of dependencies, files and script), link them together, create a configuration for one or more computers and keep all of that stuff on one git repository.
 
-An installation will generate a lockfile, or the *what-you-ve-done-the-last-time.lock* file. This will permit when you  alter your configuration and run install again to remove unnecessary installed packages or linked files from your last installation.
+An installation will generate a lockfile, or the *what-you-ve-done-the-last-time.lock* file. This will permit when you alter your configuration and run install again, to remove unnecessary installed packages or linked files from your last installation.
 
-As long as your host config.yml is well configured and you're on an linux-based OS, it *should* work.
+As long as your host config.yml is well configured and you're on a linux-based OS, it *should* work.
 
 **This application is not ready for production, use it at your own risks**
 
