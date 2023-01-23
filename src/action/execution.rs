@@ -170,9 +170,7 @@ pub fn execute(
                                 ));
                             }
                             // Remove existing file before symlink
-                            if (dest_path.is_symlink() && dest_path.symlink_metadata().is_ok())
-                                || dest_path.metadata().is_ok()
-                            {
+                            if dest_path.metadata().is_ok() {
                                 println!("remove file at {}", dest_path.to_str().unwrap());
                                 std::fs::remove_file(&dest_path).expect(&format!(
                                     "Unable to remove file {}",
@@ -203,21 +201,22 @@ pub fn execute(
                                     dest_dir.to_str().unwrap()
                                 ));
                             }
-                            // Remove existing file before symlink
-                            if (dest_path.is_symlink() && dest_path.symlink_metadata().is_ok())
-                                || dest_path.metadata().is_ok()
-                            {
+                            // Remove existing symlink before creating file
+                            if dest_path.is_symlink() && dest_path.symlink_metadata().is_ok() {
                                 println!("remove file at {}", dest_path.to_str().unwrap());
                                 std::fs::remove_file(&dest_path).expect(&format!(
                                     "Unable to remove file {}",
                                     dest_path.to_str().unwrap()
                                 ));
                             }
-                            std::fs::copy(&src_path, &dest_path).expect(&format!(
-                                "Unable to copy from {} to {}",
-                                src_path.to_str().unwrap(),
-                                dest_dir.to_str().unwrap()
-                            ));
+                            // Do not overwrite file
+                            if dest_path.metadata().is_err() {
+                                std::fs::copy(&src_path, &dest_path).expect(&format!(
+                                    "Unable to copy from {} to {}",
+                                    src_path.to_str().unwrap(),
+                                    dest_dir.to_str().unwrap()
+                                ));
+                            }
                         }
                     }
                     FileOperation::Remove => {

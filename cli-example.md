@@ -14,6 +14,7 @@ dotstrap
     --root <path>       # root directory (default: /)
     --verbose           # display logs
     --dry               # do everything without doing it
+    --skip <type>       # can be one or many of os,flatpak,dot,link,script
 ```
 
 ```yaml
