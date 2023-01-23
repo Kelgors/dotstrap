@@ -148,11 +148,10 @@ fn transform_package_deps_to_actions(
     repo: &PackageCollection,
     loaded: &mut Vec<String>,
 ) -> Result<Vec<SystemAction>> {
-    let mut dependencies_actions = vec![];
     let mut system_actions = vec![];
 
     if package.dependencies.len() == 0 {
-        return Ok(dependencies_actions);
+        return Ok(system_actions);
     }
 
     let package_deps = &package.dependencies;
@@ -165,7 +164,7 @@ fn transform_package_deps_to_actions(
             }
             loaded.push(dep_name.clone());
             // Load package
-            dependencies_actions.append(&mut transform_package_to_actions(
+            system_actions.append(&mut transform_package_to_actions(
                 repo.get(dep_name).unwrap(),
                 repo,
                 loaded,
@@ -180,8 +179,7 @@ fn transform_package_deps_to_actions(
             origin: package.path.to_string(),
         });
     }
-    dependencies_actions.append(&mut system_actions);
-    return Ok(dependencies_actions);
+    return Ok(system_actions);
 }
 
 pub fn transform_package_to_actions(
