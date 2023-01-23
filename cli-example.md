@@ -12,6 +12,7 @@ dotstrap
     --system            # only install packages
     --user              # only install dotfiles
     --root <path>       # root directory (default: /)
+    --repo github.com/Kelgors/dotfiles
     --verbose           # display logs
     --dry               # do everything without doing it
     --skip <type>       # can be one or many of os,flatpak,dot,link,script
@@ -61,3 +62,9 @@ Install command:
 - Check if all dependencies are resolved
 - transform packages in a set of actions
 - execute set of actions
+
+TODO:
+
+config: os => default ?
+skip option ?
+.gitignore => .lockfile
