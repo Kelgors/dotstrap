@@ -73,10 +73,10 @@ pub fn generate_shell_script(
                     }
                     FileOperation::Copy => {
                         let src_path_string = src_path.to_str().unwrap();
-                        format!("cp {} {}", src_path_string, dest)
+                        format!("cp -n {} {}", src_path_string, dest)
                     }
                     FileOperation::Remove => {
-                        format!("rm {}", dest)
+                        format!("rm -f {}", dest)
                     }
                 });
             }
