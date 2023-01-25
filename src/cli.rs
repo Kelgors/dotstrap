@@ -11,6 +11,34 @@ pub struct Args {
 pub enum Action {
     /// Generate a sample dostrap configuration in the current directory
     Init {},
+    /// Add packages to a host configuration
+    Add {
+        #[arg()]
+        package_names: Vec<String>,
+        /// Install the packages now
+        #[arg(short, long, default_value_t = false)]
+        install: bool,
+        // Automatically commit after removal
+        #[arg(short, long, default_value_t = false)]
+        commit: bool,
+        // Automatically push after removal
+        #[arg(short, long, default_value_t = false)]
+        push: bool,
+    },
+    /// Remove packages from a host configuration
+    Remove {
+        #[arg()]
+        package_names: Vec<String>,
+        /// Remove the packages now
+        #[arg(short, long, default_value_t = false)]
+        install: bool,
+        // Automatically commit after removal
+        #[arg(short, long, default_value_t = false)]
+        commit: bool,
+        // Automatically push after removal
+        #[arg(short, long, default_value_t = false)]
+        push: bool,
+    },
     /// Generate a shell script from your configuration
     Generate {
         /// Override hostname, load specific hosts/<hostname/package.yml

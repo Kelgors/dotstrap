@@ -1,4 +1,4 @@
 #!/bin/sh
 cargo build
 cd .dotstrap
-~/Projects/dotstrap/target/debug/dotstrap generate
+~/Projects/dotstrap/target/debug/dotstrap generate Kelgors-Desktop
