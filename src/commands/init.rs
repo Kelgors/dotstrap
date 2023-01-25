@@ -1,20 +1,18 @@
 use anyhow::Result;
 use pathbuf::pathbuf;
-use std::{fs,env};
+use std::{env, fs};
 
-use crate::{host,package};
+use crate::{host, package};
 
-pub struct RunInitOptions {
-
-}
+pub struct RunInitOptions {}
 
 pub fn run_init(hostname: String, options: RunInitOptions) -> Result<()> {
     let pwd = env::current_dir()?;
     fs::create_dir_all(pathbuf![&pwd, "packages", "flatpak"])?;
     fs::create_dir_all(pathbuf![&pwd, "packages", "tmux"])?;
     fs::create_dir_all(pathbuf![&pwd, "hosts", &hostname])?;
-    // TODO Don't overwrite files
-    // TODO How initiate only a host
+
+    // TODO Make possible to initiate only a host
     [
         (
             pathbuf![&pwd, "hosts", &hostname, "package.yml"],
@@ -39,10 +37,13 @@ pub fn run_init(hostname: String, options: RunInitOptions) -> Result<()> {
     ]
     .iter()
     .for_each(|(path, content)| {
-        fs::write(path, content).expect(&format!(
-            "Unable to write the file {}",
-            path.to_str().unwrap()
-        ));
+        // Don't overwrite files
+        if path.metadata().is_err() && path.symlink_metadata().is_err() {
+            fs::write(path, content).expect(&format!(
+                "Unable to write the file {}",
+                path.to_str().unwrap()
+            ));
+        }
     });
     return Ok(());
 }

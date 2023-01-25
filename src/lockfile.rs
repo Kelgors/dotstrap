@@ -66,7 +66,10 @@ fn inverse_additive_actions(system_actions: &Vec<SystemAction>) -> Vec<SystemAct
         .collect();
 }
 
-pub fn build_action_diff(next_system_actions: &Vec<SystemAction>) -> Result<Vec<SystemAction>> {
+pub fn build_action_diff(
+    next_system_actions: &Vec<SystemAction>,
+    full: bool,
+) -> Result<Vec<SystemAction>> {
     let pwd = std::env::current_dir()?;
     let lockfile_path = pathbuf![&pwd, ".lockfile"];
     if !lockfile_path.exists() {
@@ -77,7 +80,11 @@ pub fn build_action_diff(next_system_actions: &Vec<SystemAction>) -> Result<Vec<
 
     let missing_last_actions = make_difference(&previous_actions, next_system_actions);
     let mut delete_actions = inverse_additive_actions(&missing_last_actions);
-    let mut needed_actions = make_difference(next_system_actions, &previous_actions);
+    let mut needed_actions = if full {
+        next_system_actions.clone()
+    } else {
+        make_difference(next_system_actions, &previous_actions)
+    };
     let mut all_actions = vec![];
     all_actions.append(&mut delete_actions);
     all_actions.append(&mut needed_actions);

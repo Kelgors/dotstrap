@@ -60,14 +60,18 @@ fn main() -> Result<()> {
                 },
             )?;
         }
-        Some(cli::Action::Generate { hostname }) => {
+        Some(cli::Action::Generate { hostname, full }) => {
             let hostname = hostname.unwrap_or(machine_hostname);
             // Load host definition and prepare system actions from it
-            run_generate(hostname, RunGenerateOptions {})?;
+            run_generate(hostname, RunGenerateOptions { full })?;
         }
-        Some(cli::Action::Install { hostname, dry }) => {
+        Some(cli::Action::Install {
+            hostname,
+            dry,
+            full,
+        }) => {
             let hostname = hostname.unwrap_or(machine_hostname);
-            run_install(hostname, RunInstallOptions { dry })?;
+            run_install(hostname, RunInstallOptions { dry, full })?;
         }
         None => {}
     }

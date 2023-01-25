@@ -134,6 +134,7 @@ links:
   - src: tmux.conf
     dest: ~/.tmux.conf
 ";
+
 pub const DEFAULT_PACKAGE_EXAMPLE_TMUX_CONFIG: &str = "## split panes using | and -
 bind | split-window -h
 bind - split-window -v

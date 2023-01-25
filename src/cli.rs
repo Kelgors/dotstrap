@@ -44,6 +44,9 @@ pub enum Action {
         /// Override hostname, load specific hosts/<hostname/package.yml
         #[arg()]
         hostname: Option<String>,
+        /// (Re)Install all packages
+        #[arg(short, long, default_value_t = false)]
+        full: bool,
     },
     /// Apply your hostname configuration
     Install {
@@ -51,7 +54,12 @@ pub enum Action {
         #[arg()]
         hostname: Option<String>,
 
-        #[arg(short, long)]
+        /// Don't perform actions on your system
+        #[arg(short, long, default_value_t = false)]
         dry: bool,
+
+        /// (Re)Install all packages
+        #[arg(short, long, default_value_t = false)]
+        full: bool,
     },
 }
