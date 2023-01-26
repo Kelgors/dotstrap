@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use super::install::{run_install, RunInstallOptions};
 use crate::{
-    git::add_and_commit,
+    git,
     package::{DependencyDefinition, PackageDefinition},
 };
 
@@ -47,14 +47,14 @@ pub fn run_add(hostname: String, options: RunAddOptions) -> Result<()> {
     }
     if options.push || options.commit {
         let repo = Repository::open(std::env::current_dir()?)?;
-        let commit_oid = add_and_commit(
+        git::add_and_commit(
             &repo,
             &path,
             &build_commit_message(&hostname, &options.package_names),
         )
         .expect("Unable to commit properly");
         if options.push {
-            // git push
+            git::push(&repo)?;
         }
     }
     return Ok(());

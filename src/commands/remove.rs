@@ -1,9 +1,13 @@
 use anyhow::Result;
+use git2::Repository;
 use pathbuf::pathbuf;
 use std::str::FromStr;
 
 use super::install::{run_install, RunInstallOptions};
-use crate::package::{DependencyDefinition, PackageDefinition};
+use crate::{
+    git,
+    package::{DependencyDefinition, PackageDefinition},
+};
 
 pub struct RunRemoveOptions {
     pub package_names: Vec<String>,
@@ -18,8 +22,7 @@ pub fn run_remove(hostname: String, options: RunRemoveOptions) -> Result<()> {
     let path = pathbuf![&std::env::current_dir()?, "hosts", &hostname, "package.yml"];
     let mut definition = PackageDefinition::load(&path)?;
     let prev_dependencies_count = definition.dependencies.len();
-    let old_dependencies: Vec<DependencyDefinition> = options
-        .package_names
+    let old_dependencies: Vec<DependencyDefinition> = (&options.package_names)
         .into_iter()
         .map(|name| {
             DependencyDefinition::from_str(&name)
@@ -49,10 +52,27 @@ pub fn run_remove(hostname: String, options: RunRemoveOptions) -> Result<()> {
         )?;
     }
     if options.push || options.commit {
-        // git commit -m "Remove {packages} from {hostname}"
-    }
-    if options.push {
-        // git push
+        let repo = Repository::open(std::env::current_dir()?)?;
+        git::add_and_commit(
+            &repo,
+            &path,
+            &build_commit_message(&hostname, &options.package_names),
+        )
+        .expect("Unable to commit properly");
+        if options.push {
+            git::push(&repo)?;
+        }
     }
     return Ok(());
+}
+
+fn build_commit_message(hostname: &String, package_names: &Vec<String>) -> String {
+    if package_names.len() == 1 {
+        return format!("Remove {} from {}", package_names.get(0).unwrap(), hostname);
+    }
+    return format!(
+        "Remove packages from {}\n- {}",
+        hostname,
+        package_names.join("\n- ")
+    );
 }

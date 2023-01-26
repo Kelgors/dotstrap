@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
-use git2::{Commit, Config, Direction, ObjectType, Oid, Repository, Signature};
+use anyhow::Result;
+use git2::{Commit, ObjectType, Oid, Repository, Signature};
 
 fn find_last_commit(repo: &Repository) -> Result<Commit, git2::Error> {
     let obj = repo.head()?.resolve()?.peel(ObjectType::Commit)?;
@@ -10,82 +10,70 @@ fn find_last_commit(repo: &Repository) -> Result<Commit, git2::Error> {
         .map_err(|_| git2::Error::from_str("Couldn't find commit"));
 }
 
-fn generate_signature(repo: Option<&Repository>) -> Result<Signature> {
-    let mut user_email: Option<String> = None;
-    let mut user_name: Option<String> = None;
-
-    if let Some(_repo) = repo {
-        let local_config = _repo.config()?;
-        if user_email.is_none() {
-            user_email = local_config.get_string("user.email").ok();
-        }
-        if user_name.is_none() {
-            user_name = local_config.get_string("user.name").ok();
-        }
-    }
-    if let Ok(path) = Config::find_global() {
-        println!("Load GlobalGitConfig: {}", path.to_string_lossy());
-        let global_config = Config::open(&path)?;
-        println!("{:#?}", global_config.get_string("user.email"));
-        if user_email.is_none() {
-            user_email = global_config.get_string("user.email").ok();
-        }
-        if user_name.is_none() {
-            user_name = global_config.get_string("user.name").ok();
-        }
-    }
-    if let Ok(path) = Config::find_system() {
-        println!("Load SystemGitConfig: {}", path.to_string_lossy());
-        let system_config = Config::open(&path)?;
-        if user_email.is_none() {
-            user_email = system_config.get_string("user.email").ok();
-        }
-        if user_name.is_none() {
-            user_name = system_config.get_string("user.name").ok();
-        }
-    }
-
-    if user_email.is_some() && user_name.is_some() {
-        return Ok(Signature::now(
-            user_name.unwrap().as_str(),
-            user_email.unwrap().as_str(),
-        )?);
-    }
-    return Err(anyhow!["Cannot find git config"]);
+fn generate_signature(repo: &Repository) -> Result<Signature> {
+    let local_config = repo.config()?;
+    let email = local_config.get_string("user.email")?;
+    let name = local_config.get_string("user.name")?;
+    return Ok(Signature::now(&name, &email)?);
 }
 
 pub fn add_and_commit(repo: &Repository, path: &PathBuf, message: &str) -> Result<Oid> {
     let mut index = repo.index()?;
     index.add_path(path)?;
     let oid = index.write_tree()?;
-    let signature = generate_signature(Some(repo))?;
+    let signature = generate_signature(repo)?;
     let parent_commit = find_last_commit(repo)?;
     let tree = repo.find_tree(oid)?;
-    return Ok(repo.commit(
+    let output = repo.commit(
         Some("HEAD"),
         &signature,
         &signature,
         message,
         &tree,
         &[&parent_commit],
-    )?);
+    )?;
+    println!("Successfuly committed as {}", message);
+    return Ok(output);
 }
 
-fn push(repo: &Repository) -> Result<(), git2::Error> {
+pub fn push(repo: &Repository) -> Result<(), git2::Error> {
+    let config = repo.config()?;
     let mut remote = repo
         .find_remote("origin")
         .expect("Missing git repo remote origin");
-    remote.connect(Direction::Push)?;
-    let current_branch = repo.branches(None)?.find_map(|branch| {
-        let _branch = &branch.as_ref().unwrap().0;
-        if _branch.is_head() {
-            return _branch.name().unwrap().unwrap().clone();
-        }
-        return None;
+
+    let head = repo.head().unwrap();
+    let branch_name = head.name().unwrap();
+
+    let mut remote_callbacks = git2::RemoteCallbacks::new();
+    remote_callbacks.credentials(|url, username, allowed| {
+        let mut cred_helper = git2::CredentialHelper::new(url);
+        cred_helper.config(&config);
+        let creds = if allowed.contains(git2::CredentialType::SSH_KEY) {
+            let user = username
+                .map(|s| s.to_string())
+                .or_else(|| cred_helper.username.clone())
+                .unwrap_or("git".to_string());
+            git2::Cred::ssh_key_from_agent(&user)
+        } else if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) {
+            git2::Cred::credential_helper(&config, url, username)
+        } else if allowed.contains(git2::CredentialType::DEFAULT) {
+            git2::Cred::default()
+        } else {
+            Err(git2::Error::from_str("no authentication available"))
+        };
+        return creds;
     });
-    if let Some(branch_name) = current_branch {
-        println!("Branch name: {}", branch_name);
-        // remote.push(&["refs/heads/master:refs/heads/master"], None);
-    }
-    Ok(())
+
+    let mut push_options = git2::PushOptions::new();
+    push_options.remote_callbacks(remote_callbacks);
+
+    remote
+        .push(
+            &[format!("{}:{}", &branch_name, &branch_name)],
+            Some(&mut push_options),
+        )
+        .expect("Cannot push");
+    println!("Successfuly pushed to {}", &branch_name[11..]);
+    return Ok(());
 }
