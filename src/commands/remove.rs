@@ -19,7 +19,7 @@ pub struct RunRemoveOptions {
 pub fn run_remove(hostname: String, options: RunRemoveOptions) -> Result<()> {
     println!("pkgs: {}", &options.package_names.join(",").to_string());
 
-    let path = pathbuf![&std::env::current_dir()?, "hosts", &hostname, "package.yml"];
+    let path = pathbuf!["hosts", &hostname, "package.yml"];
     let mut definition = PackageDefinition::load(&path)?;
     let prev_dependencies_count = definition.dependencies.len();
     let old_dependencies: Vec<DependencyDefinition> = (&options.package_names)
