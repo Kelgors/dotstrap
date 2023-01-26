@@ -11,6 +11,7 @@ pub struct Args {
 pub enum Action {
     /// Generate a sample dostrap configuration in the current directory
     Init {},
+    List {},
     /// Add packages to a host configuration
     Add {
         #[arg()]
@@ -61,5 +62,9 @@ pub enum Action {
         /// (Re)Install all packages
         #[arg(short, long, default_value_t = false)]
         full: bool,
+
+        /// generate lockfile even in dry mode
+        #[arg(short, long, default_value_t = false)]
+        lock: bool,
     },
 }

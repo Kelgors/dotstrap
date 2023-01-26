@@ -4,12 +4,14 @@ use commands::add::{run_add, RunAddOptions};
 use commands::generate::{run_generate, RunGenerateOptions};
 use commands::init::{run_init, RunInitOptions};
 use commands::install::{run_install, RunInstallOptions};
+use commands::list::{run_list, RunListOptions};
 use commands::remove::{run_remove, RunRemoveOptions};
 use std::fs;
 
 mod action;
 mod cli;
 mod commands;
+mod git;
 mod helpers;
 mod host;
 mod lockfile;
@@ -60,6 +62,9 @@ fn main() -> Result<()> {
                 },
             )?;
         }
+        Some(cli::Action::List {}) => {
+            run_list(machine_hostname, RunListOptions {})?;
+        }
         Some(cli::Action::Generate { hostname, full }) => {
             let hostname = hostname.unwrap_or(machine_hostname);
             // Load host definition and prepare system actions from it
@@ -69,9 +74,10 @@ fn main() -> Result<()> {
             hostname,
             dry,
             full,
+            lock,
         }) => {
             let hostname = hostname.unwrap_or(machine_hostname);
-            run_install(hostname, RunInstallOptions { dry, full })?;
+            run_install(hostname, RunInstallOptions { dry, full, lock })?;
         }
         None => {}
     }

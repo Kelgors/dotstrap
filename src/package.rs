@@ -1,6 +1,7 @@
 use anyhow::Result;
+use pathbuf::pathbuf;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr, PickFirst};
+use serde_with::{serde_as, skip_serializing_none, DisplayFromStr, PickFirst};
 use std::fmt::{self, Display};
 use std::str::FromStr;
 use std::{collections::HashMap, fs, path::Path};
@@ -18,7 +19,10 @@ pub struct DependencyDefinition {
 
 impl Display for DependencyDefinition {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}", self.source, self.name)
+        if self.source == "os" {
+            return write!(f, "{}", self.name);
+        }
+        return write!(f, "{}:{}", self.source, self.name);
     }
 }
 
@@ -70,11 +74,14 @@ impl FromStr for LinkFileDefinition {
 }
 
 #[serde_as]
+#[skip_serializing_none]
 #[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub struct PackageDefinition {
     #[serde(default)]
+    #[serde(skip)]
     pub name: String,
     #[serde(default)]
+    #[serde(skip)]
     pub path: String,
 
     pub description: Option<String>,
@@ -82,13 +89,15 @@ pub struct PackageDefinition {
     pub pre_install: Option<String>,
 
     #[serde(default)]
-    #[serde_as(as = "Vec<PickFirst<(_, DisplayFromStr)>>")]
+    #[serde_as(as = "Vec<PickFirst<(DisplayFromStr, _)>>")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub dependencies: Vec<DependencyDefinition>,
 
     pub post_install: Option<String>,
 
     #[serde(default)]
     #[serde_as(as = "Vec<PickFirst<(_, DisplayFromStr)>>")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub links: Vec<LinkFileDefinition>,
 
     pub post_links: Option<String>,
@@ -112,6 +121,13 @@ impl PackageDefinition {
         package_definition.name = parentdir;
         package_definition.path = pathname.parent().unwrap().to_str().unwrap().to_string();
         return Ok(package_definition);
+    }
+
+    pub fn save(&self) -> Result<()> {
+        let path = pathbuf![&self.path, "package.yml"];
+        let serialized_package = serde_yaml::to_string(self)?;
+        fs::write(path, serialized_package)?;
+        return Ok(());
     }
 }
 

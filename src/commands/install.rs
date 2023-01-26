@@ -14,6 +14,7 @@ use crate::{
 pub struct RunInstallOptions {
     pub dry: bool,
     pub full: bool,
+    pub lock: bool,
 }
 
 pub fn run_install(hostname: String, options: RunInstallOptions) -> Result<()> {
@@ -43,7 +44,7 @@ pub fn run_install(hostname: String, options: RunInstallOptions) -> Result<()> {
 
     if confirm_execution {
         execute(&merged_actions, &host_definition.config, options.dry)?;
-        if !options.dry {
+        if !options.dry || options.lock {
             std::fs::write(
                 pathbuf![&std::env::current_dir()?, ".lockfile"],
                 &serialized_next_lockfile,

@@ -6,7 +6,7 @@ use crate::{host, package};
 
 pub struct RunInitOptions {}
 
-pub fn run_init(hostname: String, options: RunInitOptions) -> Result<()> {
+pub fn run_init(hostname: String, _: RunInitOptions) -> Result<()> {
     let pwd = env::current_dir()?;
     fs::create_dir_all(pathbuf![&pwd, "packages", "flatpak"])?;
     fs::create_dir_all(pathbuf![&pwd, "packages", "tmux"])?;
