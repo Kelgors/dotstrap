@@ -1,13 +1,14 @@
 use anyhow::Result;
-use git2::Repository;
 use pathbuf::pathbuf;
 use std::str::FromStr;
 
 use super::install::{run_install, RunInstallOptions};
-use crate::{
-    git,
-    package::{DependencyDefinition, PackageDefinition},
-};
+use crate::package::{DependencyDefinition, PackageDefinition};
+
+#[cfg(feature = "git")]
+use crate::git;
+#[cfg(feature = "git")]
+use git2::Repository;
 
 pub struct RunRemoveOptions {
     pub package_names: Vec<String>,
@@ -35,6 +36,7 @@ pub fn run_remove(hostname: String, options: RunRemoveOptions) -> Result<()> {
         .filter(|dependency| !old_dependencies.contains(dependency))
         .collect();
     definition.save()?;
+
     println!(
         "{} dependencies removed from {}",
         prev_dependencies_count - definition.dependencies.len(),
@@ -51,6 +53,7 @@ pub fn run_remove(hostname: String, options: RunRemoveOptions) -> Result<()> {
             },
         )?;
     }
+    #[cfg(feature = "git")]
     if options.push || options.commit {
         let repo = Repository::open(std::env::current_dir()?)?;
         git::add_and_commit(
@@ -66,6 +69,7 @@ pub fn run_remove(hostname: String, options: RunRemoveOptions) -> Result<()> {
     return Ok(());
 }
 
+#[cfg(feature = "git")]
 fn build_commit_message(hostname: &String, package_names: &Vec<String>) -> String {
     if package_names.len() == 1 {
         return format!("Remove {} from {}", package_names.get(0).unwrap(), hostname);

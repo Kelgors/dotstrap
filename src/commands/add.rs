@@ -1,13 +1,14 @@
 use anyhow::Result;
-use git2::Repository;
 use pathbuf::pathbuf;
 use std::str::FromStr;
 
 use super::install::{run_install, RunInstallOptions};
-use crate::{
-    git,
-    package::{DependencyDefinition, PackageDefinition},
-};
+use crate::package::{DependencyDefinition, PackageDefinition};
+
+#[cfg(feature = "git")]
+use crate::git;
+#[cfg(feature = "git")]
+use git2::Repository;
 
 pub struct RunAddOptions {
     pub package_names: Vec<String>,
@@ -45,6 +46,7 @@ pub fn run_add(hostname: String, options: RunAddOptions) -> Result<()> {
             },
         )?;
     }
+    #[cfg(feature = "git")]
     if options.push || options.commit {
         let repo = Repository::open(std::env::current_dir()?)?;
         git::add_and_commit(
@@ -60,6 +62,7 @@ pub fn run_add(hostname: String, options: RunAddOptions) -> Result<()> {
     return Ok(());
 }
 
+#[cfg(feature = "git")]
 fn build_commit_message(hostname: &String, package_names: &Vec<String>) -> String {
     if package_names.len() == 1 {
         return format!("Add {} to {}", package_names.get(0).unwrap(), hostname);

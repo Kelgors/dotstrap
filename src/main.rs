@@ -11,6 +11,7 @@ use std::fs;
 mod action;
 mod cli;
 mod commands;
+#[cfg(feature = "git")]
 mod git;
 mod helpers;
 mod host;

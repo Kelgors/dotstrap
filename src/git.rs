@@ -1,7 +1,6 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
-use git2::{Commit, ObjectType, Oid, Repository, Signature};
+use git2::{Commit, ObjectType, Oid, Repository};
+use std::path::PathBuf;
 
 fn find_last_commit(repo: &Repository) -> Result<Commit, git2::Error> {
     let obj = repo.head()?.resolve()?.peel(ObjectType::Commit)?;
@@ -10,20 +9,16 @@ fn find_last_commit(repo: &Repository) -> Result<Commit, git2::Error> {
         .map_err(|_| git2::Error::from_str("Couldn't find commit"));
 }
 
-fn generate_signature(repo: &Repository) -> Result<Signature> {
-    let local_config = repo.config()?;
-    let email = local_config.get_string("user.email")?;
-    let name = local_config.get_string("user.name")?;
-    return Ok(Signature::now(&name, &email)?);
-}
-
 pub fn add_and_commit(repo: &Repository, path: &PathBuf, message: &str) -> Result<Oid> {
-    let mut index = repo.index()?;
-    index.add_path(path)?;
-    let oid = index.write_tree()?;
-    let signature = generate_signature(repo)?;
+    let tree_id = {
+        let mut index = repo.index()?;
+        println!("Adding {} to the git index", path.to_string_lossy());
+        index.add_path(path)?;
+        index.write_tree()?
+    };
+    let signature = repo.signature()?;
     let parent_commit = find_last_commit(repo)?;
-    let tree = repo.find_tree(oid)?;
+    let tree = repo.find_tree(tree_id)?;
     let output = repo.commit(
         Some("HEAD"),
         &signature,
@@ -32,7 +27,19 @@ pub fn add_and_commit(repo: &Repository, path: &PathBuf, message: &str) -> Resul
         &tree,
         &[&parent_commit],
     )?;
-    println!("Successfuly committed as {}", message);
+    // STRANGE:
+    // At this point, commit is created with correct changes on package.yml
+    // but it remains one staged version and one unstagged version
+    // they cancel themselves when added to index or removed from index
+    // The code below removes these artifacts, there is surely an underlying
+    // issue but for now, i don't know how to resolve properly it.
+    {
+        let mut index = repo.index()?;
+        index.add_path(path)?;
+        index.write()?
+    }
+
+    println!("Successfuly committed as \"{}\"", message);
     return Ok(output);
 }
 
